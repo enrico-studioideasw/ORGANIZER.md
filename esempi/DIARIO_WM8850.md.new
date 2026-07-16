@@ -1,0 +1,26 @@
+# Diario recupero WM8850
+
+## Hardware identificato
+
+- Netbook white-label marchiato MVA (MediaVarese), SoC WonderMedia WM8850 a 1,25 GHz.
+- Display TFT 10 pollici 1024x600, RAM 512 MB, due porte USB host; nessuna porta USB device evidente.
+- Android originale funzionante: 4.0.3, kernel 3.0.8, build `ICS Ver1.5.1-20121111.095808`.
+
+## Obiettivo
+
+- Avviare un Linux minimale da SD e valutare il dispositivo come nodo leggero del server, preservando Android e la NAND.
+
+## Vincoli e decisioni
+
+- Non collegare due porte USB host con cavo A-A maschio: rischio elettrico e nessun supporto ADB.
+- Non scrivere nella NAND finche' il boot da SD non e' verificato e non esiste un backup.
+- Il bootloader WM8850 cerca, a seconda della revisione, `wmt_scriptcmd`, `scriptcmd`, `script/wmt_scriptcmd` o `FirmwareInstall/autorun.1.wmt`.
+- Gli script U-Boot devono essere generati con `mkimage`, non salvati come semplice testo.
+- Procedura storica verificata: kernel con `wm8850-w70v2.dtb`, root su SD; rimuovendo la SD torna Android.
+- SD sacrificabile rilevata sul server come `/dev/sdb`, 15,8 GB; il disco di sistema e' `/dev/sda`.
+
+## Rischi aperti
+
+- Il device tree W70v2 nasce per un pannello 800x480; il netbook MVA usa 1024x600 e potrebbe richiedere parametri display diversi.
+- Wi-Fi ed Ethernet integrati possono richiedere GPIO, driver o device tree specifici; una scheda Ethernet USB resta il ripiego.
+- Un kernel mainline moderno potrebbe non avviarsi su questa specifica revisione; il tentativo da SD resta reversibile.
