@@ -94,3 +94,15 @@ Such a system would keep long-term project knowledge transparent, versionable an
 In my experience, this has been one of the most effective improvements for maintaining continuity during AI-assisted software development.
 
 Suggestions and discussion are welcome.
+
+# Project continuity
+
+The experiment is active. The maintained organizer is now being used during
+the development and documentation of EWB, a small language built around a
+string-oriented virtual machine. Recent work has clarified the contracts among
+the VM, the language, persistent datasets, scheduled tasks, page threads and
+the optional `ewIA` preprocessor.
+
+The public examples are periodically aligned with reusable project knowledge.
+Operational details, credentials and private infrastructure notes remain in
+their local organizers and are deliberately excluded from this repository.

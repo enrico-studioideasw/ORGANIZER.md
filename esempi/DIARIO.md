@@ -60,6 +60,29 @@ Decisioni, vincoli tecnici, problemi, procedure e strade scartate.
 Conoscenza sedimentata sui singoli sottosistemi EWB: compilatore, VM, `ewbd`,
 dataset/context, task/cron, database ed `ewIA`.
 
+### EWB
+
+- Decisione: il prodotto centrale e' la VM; EWB e' lo strato che rende semplice
+  programmarla senza impedire l'accesso diretto al microcodice.
+- Decisione: la complessita' utile non viene eliminata. Diventa opzionale e
+  viene nascosta finche' non serve; una riga EWB che inizia con `.` contiene
+  microcodice diretto per la VM.
+- Fatto: valori e variabili non hanno un tipo rigido visibile. Possono essere
+  usati come scalari, array o insiemi; gli operatori interpretano i propri
+  argomenti e sollevano eccezioni quando una combinazione non ha senso.
+- Fatto: i dataset sono memoria persistente condivisa tra sezioni del
+  programma. `lock` e `unlock` delimitano transazioni SQL con commit, rollback
+  ed eccezione; la gestione del timeout transazionale e' prevista ma non ancora
+  implementata.
+- Fatto: un task conserva entry point, stack completo e pianificazione cron;
+  non viene duplicato se e' gia' in esecuzione e puo' essere rimosso con
+  `revoke`.
+- Fatto: un thread EWB e' una sezione `div` della pagina aggiornata a intervalli
+  o su richiesta invocando la VM con entry point, stack e parametri.
+- Decisione: `ewIA` e' un preprocessore opzionale. `AI("...")` genera una
+  proposta contestualizzata, marcata e commentata, che richiede accettazione
+  umana; l'IA non diventa una dipendenza della VM o del programma finale.
+
 ## Pausa caffe'
 
 Analogie e intuizioni laterali che aiutano a vedere il progetto da un punto di

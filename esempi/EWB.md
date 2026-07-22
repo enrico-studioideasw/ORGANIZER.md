@@ -55,6 +55,11 @@ Queste istruzioni guidano Codex nel lavoro sul progetto EasyWeb/EWB2026.
 
 ## Principi architetturali
 
+- Il prodotto centrale e' la VM. EWB e' lo strato che ne semplifica l'uso; non
+  deve impedire l'accesso alle capacita' sottostanti.
+- Una riga EWB che inizia con `.` contiene microcodice diretto per la VM. La
+  complessita' utile va resa opzionale e nascosta finche' non serve, non
+  eliminata.
 - Principio guida: compilatore semplice, VM/runtime semanticamente ricchi.
 - La sintassi deve restare scarna. La complessita' appartiene soprattutto a
   runtime, context e prefissi dei dataset, non a dichiarazioni verbose.
@@ -73,8 +78,11 @@ Queste istruzioni guidano Codex nel lavoro sul progetto EasyWeb/EWB2026.
 
 ## Dataset, context, database e task
 
-- Per il programmatore esiste un solo tipo visibile: la stringa, nello spirito
-  di Perl. La libreria DB deve nascondere tipi SQL e differenze tra motori.
+- Per il programmatore i valori non hanno un tipo rigido visibile. Una variabile
+  puo' essere usata implicitamente come scalare, array o insieme; e' l'operatore
+  a interpretare i propri argomenti e a rifiutare le combinazioni senza senso.
+- Il valore `"7"` puo' essere interpretato come testo o numero secondo
+  l'operazione. La libreria DB deve nascondere tipi SQL e differenze tra motori.
 - Un dataset porta struttura, chiavi, associazioni e vincoli nei prefissi dei
   nomi. Non introdurre uno schema esplicito obbligatorio in stile moderno.
 - Il context indica dove applicare dataset e letture/scritture. Il backend puo'
@@ -89,10 +97,22 @@ Queste istruzioni guidano Codex nel lavoro sul progetto EasyWeb/EWB2026.
   `order by id`; con ordinamento aggiungere `, id` come spareggio.
 - `QUERY` riceve sullo stack `context`, `query`, `order`, li estrae in ordine
   inverso e mette il risultato nell'accumulatore A.
+- I dataset sono anche il canale persistente condiviso tra sezioni, task e
+  thread. Se il supporto stabile non esiste viene creato automaticamente dalle
+  istruzioni previste dal linguaggio.
+- `lock` e `unlock` delimitano modifiche atomiche anche su piu' dataset usando
+  transazioni SQL: `unlock` esegue il commit; errori e timeout devono produrre
+  rollback ed eccezione. Il timeout non e' ancora implementato.
 - Un task e' un blocco asincrono con metadati anti-sovrapposizione. `_tasks` e'
   il dataset condiviso dello stato dei task background.
 - `addCron(nometask, cron)` inserisce o aggiorna `_cron`; una stringa cron vuota
   elimina la riga.
+- Un task registra entry point, stack completo e pianificazione cron. Se una
+  precedente esecuzione e' ancora attiva, la scadenza successiva non la duplica;
+  `revoke` elimina la programmazione.
+- Un thread e' un `div` aggiornabile a intervalli o su richiesta. Ogni
+  aggiornamento invoca la VM con entry point, stack e parametri; il risultato
+  riempie la sezione della pagina.
 
 ## Contratti da preservare
 
@@ -109,6 +129,8 @@ Queste istruzioni guidano Codex nel lavoro sul progetto EasyWeb/EWB2026.
   compilatore. La generazione avviene una tantum, resta commentata e marcata, e
   richiede accettazione umana. `ewIA` usa il comando esterno `curl` e deve
   segnalare chiaramente se manca.
+- Una richiesta `AI()` non preprocessata deve produrre l'eccezione esplicita
+  `Sezione AI non implementata`, non un generico errore di sintassi.
 
 ## Sorgenti storici e layout noto
 
