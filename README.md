@@ -107,6 +107,14 @@ The public examples are periodically aligned with reusable project knowledge.
 Operational details, credentials and private infrastructure notes remain in
 their local organizers and are deliberately excluded from this repository.
 
+# Private operational data
+
+Maintained memory sometimes needs to remember that an operational credential
+exists and how it is used, without storing the credential itself. The
+`tools/keyring/` example provides a small local encrypted keyring for this
+purpose. Only logical entry names and procedures belong in version-controlled
+memory; keys, vaults and secret values remain local to each machine.
+
 # Multi-assistant laboratory
 
 The repository now also explores maintained memory shared by more than one
