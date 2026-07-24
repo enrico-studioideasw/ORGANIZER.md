@@ -106,3 +106,15 @@ the optional `ewIA` preprocessor.
 The public examples are periodically aligned with reusable project knowledge.
 Operational details, credentials and private infrastructure notes remain in
 their local organizers and are deliberately excluded from this repository.
+
+# Multi-assistant laboratory
+
+The repository now also explores maintained memory shared by more than one
+assistant. `ORGANIZER.md` is the entry point, `shared/` contains reviewed
+knowledge, and `agents/` keeps observations attributable to individual
+assistants.
+
+This separation avoids pretending that every assistant observation is already
+a project decision. It also makes it possible to compare how several "small
+Zenos" develop in different laboratories while retaining one human-governed
+shared memory.
