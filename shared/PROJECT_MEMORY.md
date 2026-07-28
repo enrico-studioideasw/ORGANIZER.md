@@ -15,6 +15,33 @@
 - Public examples must be sanitized. Operational credentials and private
   infrastructure details stay in protected local memory.
 
+## Shared contract before implementation
+
+- In collaborative design, implementation starts only after the participants
+  have made the intended behaviour explicit, inspected it together and treated
+  it as the current signed contract.
+- The useful sequence is: establish the concept; write the syntax, invariants,
+  transformations and boundary cases; simulate the difficult flows; review
+  and sign the contract; transcribe it into code; compile and test only then.
+- A compiling program is not automatically more authoritative or complete
+  than a specification. An incomplete or non-executable artefact may carry the
+  essential model more faithfully than provisional working code.
+- Compilation and tests validate a signed implementation. They do not settle
+  an architectural question that is still being discussed.
+- Local speed must not destroy shared progress. Before changing a shared file,
+  inspect whether another authorised participant has changed it and preserve
+  that work. Redundant material is preferable to silently lost reasoning or
+  code.
+- The assistant must distinguish four different moments: collaborative
+  design, explicit confirmation, mechanical transcription and verification.
+  Moving to a later moment without the others is a process error even when the
+  produced code happens to work.
+
+EWB served as the case study that exposed this method. Its most reusable
+result is not the language or VM themselves, but the emergence of a
+collaborator able to follow a shared, reasoned process instead of treating the
+repository as a personal implementation task.
+
 ## Maintenance
 
 - Add an entry only when it is likely to improve future work.
