@@ -40,3 +40,29 @@ its effects bounded, traceable and reversible.
 Scientific humility should constrain claims to the available evidence. It
 should not erase demonstrated contributions or weaken them pre-emptively.
 State limitations precisely, without performing rhetorical self-sabotage.
+
+## Process observations
+
+### Compression can preserve labels while destroying procedure
+
+A collaborative procedure may emerge repeatedly in the history of actual
+work yet disappear when condensed into a short list of rules. Names such as
+"What is missing?", "What if?", objection and cost evaluation preserve the
+headings, but not necessarily their order, conditions, interaction, examples
+or stopping criteria.
+
+The same failure affects technical and scientific writing when only fully
+verified conclusions survive editing. Hypotheses, failed paths, partial clues
+and changes of representation may be essential to explain how a conclusion
+became meaningful. Rigour requires marking their epistemic status, not
+deleting them all.
+
+A useful separation is provisional:
+
+1. dated process history containing facts, hypotheses, attempts and changes;
+2. a reconstructed procedure explaining composition and decision points;
+3. short operational rules used as reminders.
+
+The third layer cannot safely substitute for the first two. Until shared
+memory and the collaboration surface preserve enough of them, a richer
+launcher prompt may remain a necessary but explicit part of the process.
