@@ -15,6 +15,29 @@
 - Public examples must be sanitized. Operational credentials and private
   infrastructure details stay in protected local memory.
 
+## Launchers and shared process
+
+- A launcher should normally provide transport concerns: wake-up conditions,
+  assistant identity, secure access and the locations of shared instructions.
+  Substantive reasoning rules hidden in its prompt make the launcher part of
+  the cognitive process.
+- Different assistants may intentionally use different launchers. This can be
+  useful in a multi-assistant experiment, but the differences must be explicit,
+  reviewable and attributable rather than accidental drift between local
+  copies.
+- Shared rules belong in shared, versioned memory or in the common
+  collaboration surface. Agent-specific rules belong in attributed memory.
+  Launchers should refer to those sources instead of silently duplicating
+  them.
+- Once a launcher influences behaviour, protect it like program source: keep a
+  recoverable version, compare deployed and maintained copies, and review
+  changes to the prompt as process changes rather than operational trivia.
+- A result that requires human observation or a decision must be available on
+  the collaboration surface the human can actually reach. Private tests and
+  filesystem notes remain useful evidence, but they are not a shared handoff
+  until exposed safely or reported there with result, limits and remaining
+  work.
+
 ## Shared contract before implementation
 
 - In collaborative design, implementation starts only after the participants
