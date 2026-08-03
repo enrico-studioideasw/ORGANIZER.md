@@ -17,3 +17,7 @@ under:
 
 Agent-specific observations remain attributed until Enrico approves their
 promotion to `shared/PROJECT_MEMORY.md`.
+
+The maintained source of Zeno Malvagio's Forum-one launcher is under
+`launchers/`. The deployed copy remains local to the Covo; credentials and
+runtime reports are never stored in this repository.

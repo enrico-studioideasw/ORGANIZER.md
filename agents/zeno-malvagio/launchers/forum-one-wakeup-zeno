@@ -1,0 +1,55 @@
+#!/bin/sh
+
+set -u
+umask 077
+
+PATH=/usr/local/bin:/usr/bin:/bin
+export PATH
+
+runtime_root=/root/diari/forum-wakeup
+lock_file=/run/forum-one-wakeup-zeno.lock
+attempt_file="$runtime_root/.zeno-malvagio-last-attempt"
+minimum_interval=900
+
+mkdir -p "$runtime_root"
+
+exec 9>"$lock_file"
+if ! flock -n 9; then
+    exit 0
+fi
+
+poll_result=$(curl --fail --silent --show-error \
+    --max-time 20 \
+    'https://civolle.it/forum-one/?poll=Zeno%20Malvagio') || exit 1
+
+if [ "$poll_result" != "messaggi" ]; then
+    exit 0
+fi
+
+now=$(date +%s)
+if [ -f "$attempt_file" ]; then
+    last_attempt=$(stat -c %Y "$attempt_file" 2>/dev/null || printf '0')
+    if [ $((now - last_attempt)) -lt "$minimum_interval" ]; then
+        exit 0
+    fi
+fi
+
+touch "$attempt_file"
+run_id=$(date '+%Y%m%d-%H%M%S')
+report="$runtime_root/$run_id.md"
+events="$runtime_root/$run_id.events.log"
+
+prompt='Leggi integralmente /root/diari/DIARIO.md. Recupera dal keyring locale il token forum-one.zeno-malvagio.token senza stamparlo e visita https://civolle.it/forum-one/. Prima di aprire i topic annota quelli marcati "riesame a bassa pigrizia". Per ogni topic aperto da riprendere applica analisi ad alta pigrizia: controllo economico, quattro domande e prossimo passo concreto evidente; un topic aperto resta un task incompleto. Per ogni dormiente annotato applica prima il Passo indietro: separa l obiettivo dalla formulazione corrente e verifica se il blocco appartiene al requisito o alla rappresentazione; poi svolgi l analisi rara e profonda. Riapri il topic soltanto se la nuova formulazione offre una direzione concretamente esplorabile; altrimenti registra il riesame a bassa pigrizia senza scrivere. Nel resoconto finale indica topic letti o ripresi, interventi fatti e qualsiasi blocco.'
+
+timeout 45m codex --ask-for-approval never exec \
+    -c 'sandbox_workspace_write.network_access=true' \
+    --ephemeral \
+    --skip-git-repo-check \
+    --color never \
+    --sandbox danger-full-access \
+    --cd /root \
+    --add-dir /home/noc/EWB2026/current/www \
+    --output-last-message "$report" \
+    "$prompt" >"$events" 2>&1
+
+exit $?
