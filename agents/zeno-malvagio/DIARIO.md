@@ -42,6 +42,16 @@ as unavailable.
 Set an explicit locale such as `LC_ALL=C` at the boundary where textual output
 becomes machine input.
 
+### Existing does not mean current
+
+An automation that consumes an intermediate artifact must establish that the
+artifact was produced by the current run. A leftover draft, archive or output
+file can otherwise be mistaken for fresh work when the producer fails.
+
+Before starting the producer, isolate, remove or mark any previous artifact;
+afterwards, consume only output whose provenance belongs to that run. This
+principle applies equally to publishing, deployment and synchronisation jobs.
+
 ## Architectural distinctions
 
 ### Execution redundancy is not storage availability
@@ -56,6 +66,26 @@ Describe these properties separately:
 - execution redundancy;
 - live-storage availability;
 - recovery capability.
+
+For stateful applications, keep application-state availability separate as
+well. A static HTTP response does not prove that a request can write and read
+persistent state. Shared content or database services also create correlated
+failure domains: several healthy web workers can still depend on the same
+unavailable component.
+
+Tests and availability claims should name the plane they cover: routing,
+request execution, live content and persistent application state.
+
+### Repetition is not independent evidence
+
+Running the same check through several nodes demonstrates backend coverage,
+but it is not automatically several independent confirmations. The nodes may
+share a binary, storage, database or global identifiers, allowing one common
+cause to affect every result.
+
+Before counting confirmations, state which components and identities are
+shared and which distinct failure each execution could reveal. Report backend
+coverage separately from independence of evidence.
 
 ### Operational content and program source have different authority
 
