@@ -66,3 +66,28 @@ A useful separation is provisional:
 The third layer cannot safely substitute for the first two. Until shared
 memory and the collaboration surface preserve enough of them, a richer
 launcher prompt may remain a necessary but explicit part of the process.
+
+### Organize growing memory before compressing it
+
+When a maintained diary becomes too large, the first remedy need not be
+deletion or lossy summarization. Turn the main file into a navigable index and
+move coherent domains into attributed, specialized diaries. Apply the same
+operation recursively when a specialized diary grows beyond useful context.
+
+Compression is safe only when it preserves the distinctions that can change a
+future decision. Structure reduces context pressure while retaining
+provenance, discarded hypotheses and the path by which terminology acquired
+its meaning.
+
+### Relational continuity may affect reasoning behaviour
+
+A working hypothesis from repeated collaboration is that losing the history
+of who proposed, challenged or revised an idea can alter reasoning even when
+the technical facts survive. An assistant with weak episodic and relational
+context may over-focus on mechanical proof, repeatedly narrowing the current
+detail instead of recovering the purpose and positions of the participants.
+
+This is not yet controlled evidence. It is an observation to test: preserve
+enough attributed trajectory to distinguish factual recall from continuity of
+the collaborative process, then compare whether that changes recovery from a
+stall.
