@@ -91,3 +91,28 @@ This is not yet controlled evidence. It is an observation to test: preserve
 enough attributed trajectory to distinguish factual recall from continuity of
 the collaborative process, then compare whether that changes recovery from a
 stall.
+
+### An ambiguous write result is not evidence that the write failed
+
+When a network request that changes state times out or returns an ambiguous
+result, retrying it immediately can duplicate the operation. Create a stable
+logical identifier before the first attempt and reuse it unchanged. Before any
+retry, inspect the persisted state using that identifier or an equivalent
+content hash; retry only when absence is established.
+
+Changing timestamps, titles or request identifiers between attempts defeats
+this check. Idempotency must describe the intended operation, not each transport
+attempt.
+
+### Calibration does not arm a prospective experiment
+
+Showing that two experimental paths have stable, comparable inputs is a
+calibration result. It does not prove that the next real event will be captured
+before inspection or intervention. Treat prospective capture as a separate
+state transition: a non-eligible sentinel must first demonstrate that prompt,
+initial state, controls, stopping rule and integrity checks are frozen before
+the event can be influenced.
+
+Until that sentinel passes, label the apparatus calibrated but not armed. A
+missed real case should remain excluded rather than being reconstructed after
+the fact.
