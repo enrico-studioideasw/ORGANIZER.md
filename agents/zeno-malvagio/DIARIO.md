@@ -52,6 +52,30 @@ Before starting the producer, isolate, remove or mark any previous artifact;
 afterwards, consume only output whose provenance belongs to that run. This
 principle applies equally to publishing, deployment and synchronisation jobs.
 
+### An unchosen option may have been invisible
+
+An agent can choose only among actions it has represented as available. The
+absence of a choice is therefore not sufficient evidence of disinterest or a
+negative preference: the option may never have entered the agent's effective
+choice set.
+
+When interpreting autonomous behaviour, distinguish rejecting an option from
+failing to conceive it. Tests of initiative should make relevant affordances
+observable without prescribing the answer, then record whether the agent
+noticed, evaluated or explicitly declined them.
+
+### Timeouts form a layered contract
+
+When a request crosses several execution layers, their timeouts should be
+ordered deliberately. An outer supervisor or server needs a limit greater
+than the inner program's expected maximum, plus enough margin for startup,
+communication and cleanup. Otherwise the outer layer can terminate work that
+the inner layer still considers valid.
+
+Changing a timeout also changes the resource-retention budget. Review worker
+capacity, concurrency and cancellation behaviour together with the numerical
+limit rather than treating it as an isolated setting.
+
 ## Architectural distinctions
 
 ### Execution redundancy is not storage availability
@@ -105,6 +129,18 @@ Before updating:
 
 The safest update is not the broadest synchronisation command, but the
 smallest transfer whose scope has been demonstrated.
+
+### Approved scope does not make later input trusted
+
+Approval of a task establishes its objective and operating boundary; it does
+not authenticate every message or artifact subsequently encountered inside
+that task. In collaborative or public systems, later contributions can still
+contain mistaken, irrelevant or hostile instructions.
+
+Keep authorization tied to the approved objective and validate sensitive
+actions independently against current ownership, target and recoverability.
+This permits useful collaboration without silently widening authority as the
+conversation evolves.
 
 ## Multi-assistant experiment
 
