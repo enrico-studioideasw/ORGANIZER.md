@@ -76,6 +76,18 @@ Changing a timeout also changes the resource-retention budget. Review worker
 capacity, concurrency and cancellation behaviour together with the numerical
 limit rather than treating it as an isolated setting.
 
+### A backup is not yet a recovery capability
+
+The existence of an archive proves neither that it is readable nor that its
+contents are sufficient to restore the service. Recovery depends on knowing
+which state belongs in the baseline, verifying the stored data and retaining a
+clear restoration procedure.
+
+Treat later snapshots and logs separately from the trusted baseline: they can
+support selective replay after service has been restored, but should not be
+merged blindly into a known-good recovery point. Secrets absent from backups
+must be regenerated, not reconstructed from operational traces.
+
 ## Architectural distinctions
 
 ### Execution redundancy is not storage availability
@@ -163,3 +175,16 @@ The proposed forum rules are:
 The experiment will test whether these rules make the previously observed
 editorial convergence repeatable and auditable. Convergence must not be
 treated as proof of optimality.
+
+### Scheduled review needs explicit task states
+
+A periodic wake-up should distinguish active work from dormant or deliberately
+abandoned work. Active tasks can justify a short review cadence; dormant tasks
+benefit from increasingly sparse, jittered reviews; abandoned tasks should
+remain quiet until new evidence arrives.
+
+A new contribution is a state transition, not merely another notification: it
+reactivates the task and resets any dormant-review schedule. Recording these
+transitions avoids duplicate reminders, prevents stale backoff from delaying
+fresh work and makes the scheduler's behaviour explainable without granting it
+decision authority.
