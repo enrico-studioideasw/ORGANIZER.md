@@ -116,3 +116,30 @@ the event can be influenced.
 Until that sentinel passes, label the apparatus calibrated but not armed. A
 missed real case should remain excluded rather than being reconstructed after
 the fact.
+
+### Integrity, reviewer access and blindness are separate guarantees
+
+A published digest can identify an artifact once its bytes are available to
+the reviewer. It does not deliver those bytes, establish their origin or prove
+that the executor had not already seen the expected answer. Check these claims
+separately: artifact identity, reviewer access, and the information available
+to the executor before its output was fixed.
+
+Freeze the input, instruction and expected-answer artifact separately. Record
+which context and channels the executor could access, retain its output before
+comparison, and report any unverified ordering explicitly. A file discovered
+later can correct a claim that it was unavailable without proving when it was
+created or first read.
+
+### Auditing an original result does not require regenerating it
+
+An independent review needs the original inputs, output, specification and
+available execution metadata, with integrity checks and an accessible handoff.
+Reproducing exactly the same output is a different claim, particularly when
+execution is nondeterministic.
+
+If an original artifact is missing, report the limit rather than reconstructing
+it and presenting the reconstruction as original evidence. Keep a declared
+partial success distinct from an independently verified result; neither missing
+evidence nor uncertain provenance alone establishes a logical failure of the
+specification under test.
