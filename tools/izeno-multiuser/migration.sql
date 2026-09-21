@@ -1,0 +1,3 @@
+ALTER TABLE zeno_console_requests
+    ADD COLUMN IF NOT EXISTS shared_mode TINYINT UNSIGNED NOT NULL DEFAULT 0
+    AFTER body;

@@ -126,3 +126,12 @@ This separation avoids pretending that every assistant observation is already
 a project decision. It also makes it possible to compare how several "small
 Zenos" develop in different laboratories while retaining one human-governed
 shared memory.
+
+# Persistent multi-user console
+
+The experiment now includes the source of the resident multi-user console
+under `tools/izeno-multiuser/`. It keeps one assistant session continuous while
+allowing two authenticated people to maintain separate conversations through
+a serial work queue. This makes continuity, provenance, privacy and conflicting
+requests properties that can be tested in running software rather than only
+described in the diaries.
