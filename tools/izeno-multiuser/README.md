@@ -57,7 +57,11 @@ must not disappear with it.
   admits the second authenticated web actor for shared requests;
 - `reference/zeno-web-schema.sql` documents the complete database surface;
 - `COLLAUDO.md` defines the two-user, privacy, compatibility and rollback
-  checks.
+  checks;
+- `tests/` contains isolated daemon checks and a repeatable MariaDB migration
+  test;
+- `REVIEW-20260921.md` records defects found by an independent installation
+  and the resulting runtime corrections.
 
 Read and adapt the code before installation. In particular, privacy filtering
 must cover history, bookmarks and copied ranges on the server, not merely hide

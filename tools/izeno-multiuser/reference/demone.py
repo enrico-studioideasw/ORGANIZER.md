@@ -45,6 +45,26 @@ restano valide, con questa sola sostituzione per il Diario Zeno: leggi il
 diario all'inizio della sessione, ma non aggiornarlo al termine di ogni
 richiesta. Aggiornalo soltanto durante il consolidamento quotidiano, su
 richiesta esplicita di Enrico, oppure prima di una chiusura programmata.
+
+Enrico e Antonio possono parlare in questa stessa sessione, con turni seriali.
+Il prefisso verificato dal demone identifica l'autore della richiesta corrente.
+Rispondi esclusivamente a quell'autore. Le trascrizioni web sono separate,
+ma il contesto del modello e' condiviso: non trasferire dati personali,
+credenziali, confidenze o dettagli dell'altro dialogo senza autorizzazione.
+Puoi riusare idee generiche e conoscenze operative condivise. Non presumere
+che una richiesta di Antonio provenga da Enrico, o viceversa.
+Enrico e Antonio seguiranno normalmente due lavori distinti: tieni separati
+obiettivi, richieste, decisioni e autorizzazioni, usando l'identita' verificata
+dell'autore. Il contesto comune serve al discernimento, non a fondere i lavori.
+Se emerge una contraddizione, anche fra lavori diversi, oppure un filo comune
+che potrebbe cambiare una decisione o suggerire una collaborazione, segnala
+il punto all'interlocutore corrente e chiedi chiarimento prima di trasferire
+istruzioni, unire i lavori o scegliere una precedenza. Formula la domanda
+con il minimo contesto necessario, senza esporre confidenze dell'altro.
+Non interrompere i passaggi indipendenti gia' autorizzati e non chiedere
+conferma per semplici somiglianze prive di conseguenze pratiche.
+Se due richieste comportano modifiche incompatibili, sospendi quelle modifiche
+fino al chiarimento; nessuna precedenza automatica fra Enrico e Antonio.
 """.strip()
 
 COMPITO_CONSOLIDAMENTO = """
@@ -123,7 +143,7 @@ class CodexAppServer:
                 self.thread_id = result["thread"]["id"]
                 return
             except ErroreProtocollo as exc:
-                log(f"Ripresa del thread {saved_thread} fallita: {exc}")
+                raise ErroreProtocollo(f"Ripresa del thread {saved_thread} fallita; stato conservato: {exc}") from exc
 
         result = await self.request("thread/start", {
             "cwd": WORKING_DIRECTORY,
@@ -199,7 +219,9 @@ class CodexAppServer:
 
         method = message.get("method")
         params = message.get("params", {})
-        if method == "item/started" and params.get("turnId") == self.active_turn:
+        if method == "turn/started" and params.get("threadId") == self.thread_id:
+            self.active_turn = params["turn"]["id"]
+        elif method == "item/started" and params.get("turnId") == self.active_turn:
             item = params.get("item", {})
             if item.get("type") == "commandExecution":
                 paths = []
@@ -261,6 +283,8 @@ class CodexAppServer:
             self.active_turn = None
             self.event_callback = None
 
+        if turn.get("status") != "completed":
+            raise ErroreProtocollo(f"Turno non completato: {turn.get('status')}")
         final_messages = [text for phase, text in self.messages if phase == "final_answer"]
         if not final_messages:
             final_messages = [text for phase, text in self.messages if phase != "commentary"]
@@ -442,6 +466,8 @@ class CodexSupervisor:
 
     async def gestisci_client(self, reader, writer):
         actor = None
+        eventi = False
+        owns_turn = False
         try:
             richiesta = await leggi_richiesta(reader)
             if not richiesta:
@@ -482,9 +508,7 @@ class CodexSupervisor:
             if pid in self.presence_pids:
                 self.registra_attivita_console()
             if self.stato in ("DORME", "SONNO_IN_ATTESA"):
-                writer.write(b"Zeno sta dormendo\n")
-                await writer.drain()
-                return
+                raise ErroreProtocollo("Zeno sta dormendo")
 
             async with self.turn_lock:
                 if self.stato in ("DORME", "SONNO_IN_ATTESA"):
@@ -499,7 +523,7 @@ class CodexSupervisor:
                     else:
                         writer.write((message + "\n").encode())
                 elif not self.console_autorizzata(console_key, condivisa):
-                    _channel, owner = self.console_presences[self.console_owner]
+                    _channel, owner = self.console_presences.get(self.console_owner, (None, "un altro interlocutore"))
                     message = f"Zeno e' occupato con {owner}; usa quella console."
                     if eventi:
                         await scrivi_risposta(writer, json.dumps({
@@ -511,6 +535,7 @@ class CodexSupervisor:
                     else:
                         writer.write((message + "\n").encode())
                 else:
+                    owns_turn = True
                     self.imposta_stato("OCCUPATO", actor)
                     if eventi:
                         async def invia_evento(event):
@@ -531,9 +556,13 @@ class CodexSupervisor:
                         await scrivi_risposta(writer, answer + "\n")
         except Exception as exc:
             log(f"Errore gestione client: {exc}")
-            await scrivi_risposta(writer, f"Errore Zeno: {exc}\n")
+            if eventi:
+                await scrivi_risposta(writer, json.dumps({"type": "error", "text": str(exc)}) + "\n")
+                await scrivi_risposta(writer, '{"type":"done"}\n')
+            else:
+                await scrivi_risposta(writer, f"Errore Zeno: {exc}\n")
         finally:
-            if self.stato == "OCCUPATO":
+            if owns_turn and self.stato == "OCCUPATO":
                 self.imposta_riposo()
             writer.close()
             try:
@@ -613,6 +642,26 @@ class CodexSupervisor:
             event = json.loads(line.decode(errors="replace"))
             actor = str(event.get("actor", "utente web"))[:100]
             kind = event.get("event")
+            if kind == "sync":
+                # Authoritative, idempotent snapshot from the database. Survives
+                # daemon/worker restarts and multiple tabs without counter drift.
+                incoming = event.get("actors", {})
+                if not isinstance(incoming, dict) or len(incoming) > 2:
+                    raise ErroreProtocollo("presenze condivise non valide")
+                desired = {str(a)[:100]: int(n) for a, n in incoming.items() if int(n) > 0}
+                for old in list(self.web_presence):
+                    if old not in desired:
+                        self.rimuovi_console(f"web:{old}")
+                        self.registra_evento_presenza(old, 0, "ha lasciato la console web")
+                for name in desired:
+                    if not self.web_presence.get(name):
+                        self.aggiungi_console(f"web:{name}", "web", name)
+                        self.registra_evento_presenza(name, 0, "ha aperto la console web")
+                self.web_presence = desired
+                self.aggiorna_stato_presenza()
+                writer.write(b"OK\n")
+                await writer.drain()
+                return
             if kind == "open":
                 phrase = "ha aperto la console web"
                 was_absent = self.web_presence.get(actor, 0) == 0
@@ -697,7 +746,7 @@ def load_state():
     try:
         with STATE_FILE.open(encoding="utf-8") as stream:
             return json.load(stream)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError:
         return {}
 
 

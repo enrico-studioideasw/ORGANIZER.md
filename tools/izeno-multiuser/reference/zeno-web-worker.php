@@ -54,7 +54,7 @@ function send_control(string $actor, string $event): bool
 function expire_sessions(mysqli $db): void
 {
     $result = $db->query(
-        'SELECT s.token, s.user_id,
+        'SELECT s.token, s.user_id, s.last_seen, s.last_activity,
                 CASE
                   WHEN s.last_seen < DATE_SUB(NOW(), INTERVAL 120 SECOND)
                     THEN \'dropped\'
@@ -74,9 +74,10 @@ function expire_sessions(mysqli $db): void
         $statement = $db->prepare(
             'UPDATE zeno_console_sessions
              SET close_reason = ?, closed_at = NOW()
-             WHERE token = ? AND close_reason = \'open\''
+             WHERE token = ? AND close_reason = \'open\'
+               AND last_seen = ? AND last_activity = ?'
         );
-        $statement->bind_param('ss', $session['reason'], $session['token']);
+        $statement->bind_param('ssss', $session['reason'], $session['token'], $session['last_seen'], $session['last_activity']);
         $statement->execute();
         if ($statement->affected_rows === 1) {
             $statement = $db->prepare(
@@ -89,14 +90,14 @@ function expire_sessions(mysqli $db): void
     }
 }
 
-function store_spontaneous(mysqli $db, string $body): void
+function store_spontaneous(mysqli $db, string $body, string $actor): void
 {
     $statement = $db->prepare(
         'INSERT INTO zeno_console_events
          (request_id, user_id, event_type, body)
-         VALUES (NULL, NULL, \'spontaneous\', ?)'
+         SELECT NULL, id, \'spontaneous\', ? FROM users WHERE name = ?'
     );
-    $statement->bind_param('s', $body);
+    $statement->bind_param('ss', $body, $actor);
     $statement->execute();
 }
 
@@ -124,6 +125,7 @@ function execute_spontaneous(mysqli $db, string $actor): void
     $envelope = json_encode([
         'actor' => $actor,
         'text' => TICK_PROMPT,
+        'shared' => true,
         'local_images' => [],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $socket = @stream_socket_client('unix://' . MAIN_SOCKET, $errno, $error, 5);
@@ -149,7 +151,7 @@ function execute_spontaneous(mysqli $db, string $actor): void
     }
     fclose($socket);
     if ($answer !== '' && $answer !== '__SILENZIO__') {
-        store_spontaneous($db, $answer);
+        store_spontaneous($db, $answer, $actor);
         log_line('sa fem? web: messaggio pubblicato per ' . $actor);
     } else {
         log_line('sa fem? web: silenzio per ' . $actor);
@@ -158,23 +160,20 @@ function execute_spontaneous(mysqli $db, string $actor): void
 
 function deliver_presence(mysqli $db): void
 {
-    $result = $db->query(
-        'SELECT q.id, q.event_type, u.name
-         FROM zeno_console_presence_queue q
-         JOIN users u ON u.id = q.user_id
-         WHERE q.delivered_at IS NULL ORDER BY q.id LIMIT 20'
-    );
-    while ($row = $result->fetch_assoc()) {
-        if (!send_control($row['name'], $row['event_type'])) {
-            return;
-        }
-        $statement = $db->prepare(
-            'UPDATE zeno_console_presence_queue SET delivered_at = NOW()
-             WHERE id = ? AND delivered_at IS NULL'
-        );
-        $statement->bind_param('i', $row['id']);
-        $statement->execute();
-    }
+    $actors = [];
+    $rows = $db->query("SELECT u.name, COUNT(*) AS n FROM zeno_console_sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.close_reason = 'open'
+        AND s.last_seen >= DATE_SUB(NOW(), INTERVAL 120 SECOND)
+        GROUP BY u.name");
+    while ($r = $rows->fetch_assoc()) { $actors[$r['name']] = (int) $r['n']; }
+    $socket = @stream_socket_client('unix://' . CONTROL_SOCKET, $errno, $error, 2);
+    if (!$socket) { throw new RuntimeException('Demone non raggiungibile: ' . $error); }
+    stream_set_timeout($socket, 5);
+    fwrite($socket, json_encode(['event' => 'sync', 'actors' => (object) $actors]) . "\n");
+    $answer = fgets($socket); fclose($socket);
+    if (trim((string) $answer) !== 'OK') { throw new RuntimeException('Sincronizzazione presenze fallita'); }
+    $db->query('UPDATE zeno_console_presence_queue SET delivered_at = NOW() WHERE delivered_at IS NULL');
 }
 
 function mirror_status(mysqli $db): void
@@ -351,16 +350,16 @@ function execute_request(mysqli $db, array $request): void
     stream_set_timeout($socket, 3600);
     fwrite($socket, "ZENO-WEB/1\n" . $envelope . "\r\n\r\n");
     stream_socket_shutdown($socket, STREAM_SHUT_WR);
+    $done = false;
+    $final = false;
     while (($line = fgets($socket)) !== false) {
         $event = json_decode(trim($line), true);
-        if (!is_array($event)) {
-            continue;
-        }
+        if (!is_array($event)) { fclose($socket); throw new RuntimeException('Risposta del demone non valida'); }
         $type = $event['type'] ?? '';
-        if ($type === 'done') {
-            continue;
-        }
+        if ($type === 'done') { $done = true; continue; }
+        if ($type === 'final') { $final = true; }
         if ($type === 'error') {
+            fclose($socket);
             throw new RuntimeException((string) ($event['text'] ?? 'Richiesta rifiutata.'));
         }
         if ($type === 'files') {
@@ -378,11 +377,22 @@ function execute_request(mysqli $db, array $request): void
     }
     $meta = stream_get_meta_data($socket);
     fclose($socket);
+    if (!$done || !$final) { throw new RuntimeException('Risposta interrotta; nessuna ripetizione automatica del lavoro.'); }
     if ($meta['timed_out']) {
         throw new RuntimeException('Tempo massimo della risposta superato.');
     }
 }
 
+$lockName = 'izeno-worker-' . $config['db_name'];
+$lock = $db->prepare('SELECT GET_LOCK(?, 0)');
+$lock->bind_param('s', $lockName); $lock->execute();
+if ((int) $lock->get_result()->fetch_column() !== 1) { throw new RuntimeException('Worker già avviato'); }
+$interrupted = $db->query("SELECT id, user_id FROM zeno_console_requests WHERE status = 'processing'");
+while ($r = $interrupted->fetch_assoc()) {
+    $message = 'Esecuzione interrotta dal riavvio. Verificare l’esito prima di ripetere.';
+    store_event($db, (int) $r['id'], (int) $r['user_id'], 'system', $message);
+    finish_request($db, (int) $r['id'], false, $message);
+}
 log_line('Worker iZeno web avviato');
 $tickActor = null;
 $tickDue = null;
@@ -433,6 +443,7 @@ while (true) {
             execute_spontaneous($db, $actor);
         }
     } catch (Throwable $error) {
+        if ($error instanceof mysqli_sql_exception) { throw $error; }
         log_line('Errore ciclo worker: ' . $error->getMessage());
     }
     usleep(500000);

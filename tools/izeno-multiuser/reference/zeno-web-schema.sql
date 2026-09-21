@@ -14,8 +14,9 @@ CREATE TABLE IF NOT EXISTS zeno_console_sessions (
     user_id BIGINT UNSIGNED NOT NULL,
     opened_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_activity DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     closed_at DATETIME NULL,
-    close_reason ENUM('open', 'closed', 'dropped') NOT NULL DEFAULT 'open',
+    close_reason ENUM('open', 'closed', 'dropped', 'inactive') NOT NULL DEFAULT 'open',
     user_agent VARCHAR(255) NOT NULL DEFAULT '',
     PRIMARY KEY (token),
     KEY zeno_sessions_user (user_id, last_seen),
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS zeno_console_events (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY zeno_events_request (request_id, id),
+    KEY zeno_events_user (user_id, id),
     CONSTRAINT zeno_events_request_fk
         FOREIGN KEY (request_id) REFERENCES zeno_console_requests (id)
         ON DELETE SET NULL,

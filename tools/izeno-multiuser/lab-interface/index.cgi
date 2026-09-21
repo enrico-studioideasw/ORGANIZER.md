@@ -54,8 +54,9 @@ function session_token(array $user): string
         api_error('Sessione web non valida.', 401);
     }
     $statement = db()->prepare(
-        'SELECT token, close_reason FROM zeno_console_sessions
-         WHERE token = ? AND user_id = ?'
+        'SELECT token, close_reason,
+                (last_seen >= DATE_SUB(NOW(), INTERVAL 120 SECOND)) AS live
+         FROM zeno_console_sessions WHERE token = ? AND user_id = ?'
     );
     $statement->bind_param('si', $token, $user['id']);
     $statement->execute();
@@ -66,7 +67,7 @@ function session_token(array $user): string
     if ($session['close_reason'] === 'inactive') {
         api_error('Zeno si è disconnesso per inattività.', 401);
     }
-    if ($session['close_reason'] !== 'open') {
+    if ($session['close_reason'] !== 'open' || !(int) $session['live']) {
         api_error('Sessione web chiusa.', 401);
     }
     return $token;
@@ -84,28 +85,32 @@ function queue_presence(int $userId, string $event): void
 
 function open_session(array $user): never
 {
-    $result = db()->query(
-        'SELECT DISTINCT s.user_id
-         FROM zeno_console_sessions s
-         WHERE s.close_reason = \'open\'
-           AND s.last_seen >= DATE_SUB(NOW(), INTERVAL 120 SECOND)'
-    );
-    $activeUsers = array_map('intval', array_column(
-        $result->fetch_all(MYSQLI_ASSOC), 'user_id'
-    ));
-    if (!in_array((int) $user['id'], $activeUsers, true)
-        && count($activeUsers) >= 2) {
-        api_error('La console condivisa ha già due interlocutori.', 409);
+    // Serialize admission on the singleton row; count accounts, not tabs.
+    $db = db();
+    $db->begin_transaction();
+    try {
+        $db->query('SELECT singleton FROM zeno_console_runtime WHERE singleton = 1 FOR UPDATE');
+        $result = $db->query(
+            "SELECT DISTINCT user_id FROM zeno_console_sessions
+             WHERE close_reason = 'open'
+             AND last_seen >= DATE_SUB(NOW(), INTERVAL 120 SECOND)"
+        );
+        $activeUsers = array_map('intval', array_column($result->fetch_all(MYSQLI_ASSOC), 'user_id'));
+        if (!in_array((int) $user['id'], $activeUsers, true) && count($activeUsers) >= 2) {
+            $db->rollback();
+            api_error('La console condivisa ha già due interlocutori.', 409);
+        }
+        $token = bin2hex(random_bytes(32));
+        $agent = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+        $statement = $db->prepare('INSERT INTO zeno_console_sessions (token, user_id, user_agent) VALUES (?, ?, ?)');
+        $statement->bind_param('sis', $token, $user['id'], $agent);
+        $statement->execute();
+        queue_presence((int) $user['id'], 'open');
+        $db->commit();
+    } catch (Throwable $error) {
+        $db->rollback();
+        throw $error;
     }
-    $token = bin2hex(random_bytes(32));
-    $agent = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
-    $statement = db()->prepare(
-        'INSERT INTO zeno_console_sessions (token, user_id, user_agent)
-         VALUES (?, ?, ?)'
-    );
-    $statement->bind_param('sis', $token, $user['id'], $agent);
-    $statement->execute();
-    queue_presence((int) $user['id'], 'open');
     $timeout = mb_strtolower((string) $user['name']) === 'enrico' ? 3600 : 900;
     api_response([
         'session' => $token,
@@ -116,6 +121,8 @@ function open_session(array $user): never
 
 function heartbeat(array $user): never
 {
+    db()->begin_transaction();
+    db()->query('SELECT singleton FROM zeno_console_runtime WHERE singleton = 1 FOR UPDATE');
     $token = session_token($user);
     $active = (int) ($_POST['active'] ?? 0) === 1;
     $sql = $active
@@ -127,6 +134,7 @@ function heartbeat(array $user): never
     $statement = db()->prepare($sql);
     $statement->bind_param('si', $token, $user['id']);
     $statement->execute();
+    db()->commit();
     api_response(['ok' => true]);
 }
 
