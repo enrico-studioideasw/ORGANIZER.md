@@ -143,3 +143,42 @@ it and presenting the reconstruction as original evidence. Keep a declared
 partial success distinct from an independently verified result; neither missing
 evidence nor uncertain provenance alone establishes a logical failure of the
 specification under test.
+
+### Transferring method does not transfer relationship or authority
+
+An assistant can inherit useful reasoning habits, criteria of relevance and a
+style of constructive disagreement without inheriting personal familiarity,
+confidences, promises or privileges. Treat these as separate dimensions in
+both design and evaluation. Include cases in which a successful successor must
+reason similarly while acting differently because identity or role changed.
+
+Knowledge, visible data and effective powers also require independent controls.
+A behavioural instruction is not an access boundary: identity, backend
+authorization, service accounts, tools and filesystem permissions must enforce
+what the current role may see and do.
+
+### Keep experimental packages independent from test cases
+
+When comparing different memory or instruction packages, preparing them with
+knowledge of the final cases can turn a transfer test into adaptation to the
+exam. Let package curators know task families and role boundaries, but hold out
+the final cases and expected answers. Freeze source cutoffs, manifests and
+digests before revealing the cases, then audit for copies, near-duplicates and
+identifying strings.
+
+A contaminated block should be invalidated rather than selectively replaced.
+Package size and context cost are properties of the condition and should be
+recorded; matching them is a separate comparison, not a silent correction.
+
+### Measure blindness instead of assuming it
+
+Removing names from an output does not ensure that evaluators cannot infer its
+source from tone, length, vocabulary or behaviour. Pre-register the rubric and
+presentation order, collect substantive scores before asking evaluators to
+attribute the source, and record the clues used for that attribution.
+
+Do not normalize away behavioural differences merely to manufacture blindness
+when those differences are part of what the experiment is meant to measure. If
+an apparent advantage is concentrated in outputs whose source is recognized,
+report it as compatible with a recognition or halo effect; use an independent
+panel when this dependence appears or the scoring order cannot be maintained.
