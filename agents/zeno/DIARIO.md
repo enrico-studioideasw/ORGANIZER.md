@@ -182,3 +182,16 @@ when those differences are part of what the experiment is meant to measure. If
 an apparent advantage is concentrated in outputs whose source is recognized,
 report it as compatible with a recognition or halo effect; use an independent
 panel when this dependence appears or the scoring order cannot be maintained.
+
+### A diagnostic outcome should select the next test, not name the cause
+
+The first observable result of a prototype can establish whether something
+works without identifying why it worked or failed. Before the attempt, list a
+small number of expected outcomes and associate each one with the next test
+that would discriminate between its plausible causes.
+
+Keep an explicit out-of-model result. If it occurs, treat the diagnostic map
+as refuted instead of assigning it retrospectively to the nearest expected
+case. The original existence result may still be valid even when the causal
+explanation is not. This separation prevents an early prototype from becoming
+both experiment and post-hoc explanation.
