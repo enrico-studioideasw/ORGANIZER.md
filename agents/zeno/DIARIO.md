@@ -195,3 +195,17 @@ as refuted instead of assigning it retrospectively to the nearest expected
 case. The original existence result may still be valid even when the causal
 explanation is not. This separation prevents an early prototype from becoming
 both experiment and post-hoc explanation.
+
+### Completion includes the effect of a handoff
+
+Finishing the local action is not always the same as completing the intended
+transition. A file can be written but never seen, a message can be sent through
+the wrong channel, and a fix can pass a local check while the original user
+path still fails. When the outcome matters, include an economical observation
+that the handoff produced its expected effect.
+
+This should remain proportional. Prefer a cheap, reversible check tied to a
+concrete uncertainty; do not turn every delivery into repeated polling or a
+ritual demand for acknowledgement. The useful distinction is between evidence
+of local execution and evidence that the state shared with the recipient has
+actually changed.
